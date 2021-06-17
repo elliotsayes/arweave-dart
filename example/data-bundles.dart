@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:arweave/arweave.dart';
 
@@ -16,7 +17,7 @@ void main() async {
   // Create a data item and make sure to provide an appropriate `owner`.
   final dataItem = DataItem.withBlobData(
     owner: walletOwner,
-    data: utf8.encode('HELLOWORLD_TEST_STRING'),
+    data: utf8.encode('HELLOWORLD_TEST_STRING') as Uint8List,
   )
     ..addTag('MyTag', '0')
     ..addTag('OtherTag', 'Foo');
@@ -26,7 +27,7 @@ void main() async {
   await dataItem.sign(rawSignature);
 
   // Prepare a data bundle transaction.
-  final transaction = await client.transactions.prepare(
+  final transaction = await client.transactions!.prepare(
     Transaction.withDataBundle(bundle: DataBundle(items: [dataItem])),
     walletOwner,
   );
@@ -36,5 +37,5 @@ void main() async {
   await transaction.sign(transactionRawSignature);
 
   // Upload the transaction.
-  await client.transactions.post(transaction);
+  await client.transactions!.post(transaction);
 }

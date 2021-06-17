@@ -1,4 +1,5 @@
 targets:
   $default:
     builders:
-      json_serializable:
+      json_serializable|json_serializable:
+        enabled: true

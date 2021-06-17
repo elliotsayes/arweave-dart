@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -20,8 +21,9 @@ void main() {
     test('create, sign, and verify data transaction', () async {
       final wallet = await getTestWallet();
       final owner = await wallet.getOwner();
-      final transaction = await client.transactions
-          .prepare(Transaction.withBlobData(data: utf8.encode('test')), owner);
+      final transaction = await client.transactions!.prepare(
+          Transaction.withBlobData(data: utf8.encode('test') as Uint8List),
+          owner);
 
       transaction
         ..addTag('test-tag-1', 'test-value-1')
@@ -50,7 +52,7 @@ void main() {
     test('create, sign, and specify reward for AR transaction', () async {
       final wallet = await getTestWallet();
       final owner = await wallet.getOwner();
-      final transaction = await client.transactions.prepare(
+      final transaction = await client.transactions!.prepare(
         Transaction(
           target: 'GRQ7swQO1AMyFgnuAPI7AvGQlW3lzuQuwlJbIpWV7xk',
           quantity: utils.arToWinston('1.5'),
@@ -83,7 +85,7 @@ void main() {
       final unsignedV2Tx =
           await getTestTransaction('test/fixtures/unsigned_v2_tx.json');
 
-      final tx = await client.transactions.prepare(
+      final tx = await client.transactions!.prepare(
         Transaction.withBlobData(
           data: unsignedV2Tx.data,
           reward: utils.arToWinston('100'),
@@ -107,7 +109,7 @@ void main() {
         () async {
       final data = await File('test/fixtures/1mb.bin').readAsBytes();
 
-      final transaction = await client.transactions
+      final transaction = await client.transactions!
           .prepare(Transaction.withBlobData(data: data, reward: BigInt.one));
       expect(transaction.setData(data), completion(null));
     }, onPlatform: {
@@ -119,7 +121,7 @@ void main() {
         () async {
       final data = await File('test/fixtures/lotsofdata.bin').readAsBytes();
 
-      final transaction = await client.transactions
+      final transaction = await client.transactions!
           .prepare(Transaction.withBlobData(data: data, reward: BigInt.one));
       expect(transaction.setData(data), completion(null));
     }, onPlatform: {
@@ -129,7 +131,7 @@ void main() {
     test('error when invalid data is set on prepared transaction', () async {
       final data = await File('test/fixtures/lotsofdata.bin').readAsBytes();
 
-      final transaction = await client.transactions
+      final transaction = await client.transactions!
           .prepare(Transaction.withBlobData(data: data, reward: BigInt.one));
       expect(
         transaction.setData(Uint8List.sublistView(data, 1)),
@@ -140,14 +142,15 @@ void main() {
     });
 
     test('upload data to transaction already on network', () async {
-      final transaction = await client.transactions
-          .get('8C6yYu5pWMADLSd65wTnrzgN-9eLj9sFbyVC3prSaFs');
+      final transaction = await (client.transactions!
+              .get('8C6yYu5pWMADLSd65wTnrzgN-9eLj9sFbyVC3prSaFs')
+          as FutureOr<Transaction>);
 
-      await transaction
-          .setData(utf8.encode('{"name":"Blockchains & Cryptocurrencies"}'));
+      await transaction.setData(utf8
+          .encode('{"name":"Blockchains & Cryptocurrencies"}') as Uint8List);
 
       expect(
-        client.transactions.upload(transaction, dataOnly: true).drain(),
+        client.transactions!.upload(transaction, dataOnly: true).drain(),
         completion(null),
       );
     });
@@ -156,8 +159,8 @@ void main() {
       final data = utf8.encode('Hello world!');
       final wallet = await getTestWallet();
       final owner = await wallet.getOwner();
-      final transaction = await client.transactions.prepare(
-        Transaction.withBlobData(data: data),
+      final transaction = await client.transactions!.prepare(
+        Transaction.withBlobData(data: data as Uint8List),
         owner,
       );
 
@@ -165,7 +168,7 @@ void main() {
       final rawSignature = await wallet.sign(signatureData);
       await transaction.sign(rawSignature);
 
-      final uploader = await client.transactions.getUploader(transaction);
+      final uploader = await client.transactions!.getUploader(transaction);
       final reloadedUploader = await TransactionUploader.deserialize(
           uploader.serialize(), data, client.api);
 
@@ -177,7 +180,8 @@ void main() {
     });
 
     test('get and verify transaction', () async {
-      final transaction = await client.transactions.get(liveDataTxId);
+      final transaction = await (client.transactions!.get(liveDataTxId)
+          as FutureOr<Transaction>);
       expect(await transaction.verify(), isTrue);
     });
   });
