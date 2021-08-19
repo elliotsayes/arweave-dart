@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -143,16 +142,16 @@ void main() {
 
     test('upload data to transaction already on network', () async {
       final transaction = await (client.transactions!
-              .get('8C6yYu5pWMADLSd65wTnrzgN-9eLj9sFbyVC3prSaFs')
-          as FutureOr<Transaction>);
+          .get('8C6yYu5pWMADLSd65wTnrzgN-9eLj9sFbyVC3prSaFs'));
+      if (transaction != null) {
+        await transaction.setData(utf8
+            .encode('{"name":"Blockchains & Cryptocurrencies"}') as Uint8List);
 
-      await transaction.setData(utf8
-          .encode('{"name":"Blockchains & Cryptocurrencies"}') as Uint8List);
-
-      expect(
-        client.transactions!.upload(transaction, dataOnly: true).drain(),
-        completion(null),
-      );
+        expect(
+          client.transactions!.upload(transaction, dataOnly: true).drain(),
+          completion(null),
+        );
+      }
     });
 
     test('upload transaction with serialised uploader', () async {
@@ -180,9 +179,10 @@ void main() {
     });
 
     test('get and verify transaction', () async {
-      final transaction = await (client.transactions!.get(liveDataTxId)
-          as FutureOr<Transaction>);
-      expect(await transaction.verify(), isTrue);
+      final transaction = await (client.transactions!.get(liveDataTxId));
+      if (transaction != null) {
+        expect(await transaction.verify(), isTrue);
+      }
     });
   });
 }
