@@ -36,10 +36,9 @@ class ArweaveTransactionsApi {
   ///
   /// Chunks the transaction data, sets the transaction anchor, reward,
   /// and the transaction owner if a wallet is specified,
-  Future<Transaction> prepare(
-    Transaction transaction,
-    Wallet wallet,
-  ) async {
+  /// setReward [default true] sets the reward on transaction
+  Future<Transaction> prepare(Transaction transaction, Wallet wallet,
+      {bool setReward = true}) async {
     if (transaction.format == 1) {
       throw ArgumentError('Creating v1 transactions is not supported.');
     }
@@ -53,13 +52,14 @@ class ArweaveTransactionsApi {
     }
 
     if (transaction.reward == BigInt.zero) {
-
-      transaction.setReward(
-        await getPrice(
-          byteSize: int.parse(transaction.dataSize),
-          targetAddress: transaction.target,
-        ),
-      );
+      if (setReward) {
+        transaction.setReward(
+          await getPrice(
+            byteSize: int.parse(transaction.dataSize),
+            targetAddress: transaction.target,
+          ),
+        );
+      }
     }
 
     await transaction.prepareChunks();
