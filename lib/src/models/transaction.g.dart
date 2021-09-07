@@ -17,7 +17,7 @@ Transaction _$TransactionFromJson(Map<String, dynamic> json) {
         .toList(),
     target: json['target'] as String?,
     quantity: _stringToBigInt(json['quantity'] as String),
-    data: json['data'] as String?,
+    data: json['data'],
     dataSize: json['data_size'] as String?,
     dataRoot: json['data_root'] as String?,
     reward: _stringToBigInt(json['reward'] as String),
