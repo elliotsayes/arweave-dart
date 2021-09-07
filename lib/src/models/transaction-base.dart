@@ -12,7 +12,7 @@ abstract class TransactionBase {
 
   String get target;
 
-  Uint8List get data;
+  dynamic get data;
 
   //Null signature means the transaction hasnt been signed
   String? get signature;

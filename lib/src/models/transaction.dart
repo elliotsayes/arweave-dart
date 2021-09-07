@@ -83,7 +83,7 @@ class Transaction implements TransactionBase {
     List<Tag>? tags,
     String? target,
     BigInt? quantity,
-    String? data,
+    dynamic data,
     Uint8List? dataBytes,
     String? dataSize,
     String? dataRoot,
@@ -120,12 +120,12 @@ class Transaction implements TransactionBase {
     required DataBundle bundle,
     BigInt? reward,
   }) =>
-      Transaction.withBlobData(
+      Transaction.withBinaryData(
         owner: owner,
         tags: tags,
         target: target,
         quantity: quantity,
-        data: utf8.encode(json.encode(bundle.toJson())) as Uint8List,
+        data: (utf8.encode(json.encode(bundle.toJson())) as Uint8List).buffer,
         reward: reward,
       )
         ..addTag('Bundle-Format', 'binary')
@@ -164,6 +164,25 @@ class Transaction implements TransactionBase {
         target: target,
         quantity: quantity,
         dataBytes: data,
+        dataSize: data.lengthInBytes.toString(),
+        reward: reward,
+      );
+
+  /// Constructs a [Transaction] with the specified binary data and computed data size.
+  factory Transaction.withBinaryData({
+    String? owner,
+    List<Tag>? tags,
+    String? target,
+    BigInt? quantity,
+    required ByteBuffer data,
+    BigInt? reward,
+  }) =>
+      Transaction(
+        owner: owner,
+        tags: tags,
+        target: target,
+        quantity: quantity,
+        data: data,
         dataSize: data.lengthInBytes.toString(),
         reward: reward,
       );
