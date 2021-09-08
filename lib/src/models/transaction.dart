@@ -48,8 +48,8 @@ class Transaction implements TransactionBase {
   ///
   /// This data is persisted unencoded to avoid having to convert it back from Base64 when signing.
   @override
-  Uint8List get data => _data;
-  Uint8List _data;
+  dynamic get data => _data;
+  dynamic _data;
 
   @JsonKey(name: 'data_size')
   String get dataSize => _dataSize;
@@ -92,8 +92,10 @@ class Transaction implements TransactionBase {
   })  : _target = target ?? '',
         _quantity = quantity ?? BigInt.zero,
         _data = data != null
-            ? decodeBase64ToBytes(data)
-            : (dataBytes ?? Uint8List(0)),
+            ? data is String
+                ? decodeBase64ToBytes(data)
+                : (dataBytes ?? Uint8List(0))
+            : (data as ByteBuffer),
         _dataRoot = dataRoot ?? '',
         _reward = reward ?? BigInt.zero,
         _owner = owner,
