@@ -94,8 +94,8 @@ class Transaction implements TransactionBase {
         _data = data != null
             ? data is String
                 ? decodeBase64ToBytes(data)
-                : (dataBytes ?? Uint8List(0))
-            : (data as ByteBuffer),
+                : (data as ByteBuffer)
+            : (dataBytes ?? Uint8List(0)),
         _dataRoot = dataRoot ?? '',
         _reward = reward ?? BigInt.zero,
         _owner = owner,
