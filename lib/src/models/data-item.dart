@@ -12,20 +12,20 @@ part 'data-item.g.dart';
 @JsonSerializable()
 class DataItem implements TransactionBase {
   @override
-  String? get id => _id;
-  String? _id;
+  String get id => _id;
+  late String _id;
 
   @override
   String get owner => _owner;
-  String _owner;
+  late String _owner;
 
   @override
-  final String? target;
-  final String? nonce;
+  late String target;
+  late String nonce;
 
   @override
-  List<Tag>? get tags => _tags;
-  List<Tag>? _tags;
+  List<Tag> get tags => _tags;
+  List<Tag> _tags;
 
   /// The unencoded data associated with this [DataItem].
   ///
@@ -34,29 +34,27 @@ class DataItem implements TransactionBase {
   final Uint8List data;
 
   @override
-  String? get signature => _signature;
-  String? _signature;
+  String get signature => _signature;
+  late String _signature;
 
   /// This constructor is reserved for JSON serialisation.
   ///
   /// [DataItem.withJsonData()] and [DataItem.withBlobData()] are the recommended ways to construct data items.
   DataItem({
-    String? id,
     String? owner,
-    this.target,
-    this.nonce,
+    String? target,
+    String? nonce,
     List<Tag>? tags,
     String? data,
     Uint8List? dataBytes,
-    String? signature,
-  })  : _id = id,
+  })  : 
+        target = target ??'',
+        nonce = nonce ??'',
         _owner = owner ?? '',
         data = data != null
             ? decodeBase64ToBytes(data)
             : (dataBytes ?? Uint8List(0)),
-        _signature = signature {
-    _tags = tags ?? [];
-  }
+        _tags = tags ?? [];
 
   /// Constructs a [DataItem] with the specified JSON data and appropriate Content-Type tag.
   factory DataItem.withJsonData({
@@ -95,7 +93,7 @@ class DataItem implements TransactionBase {
 
   @override
   void addTag(String name, String value) {
-    tags!.add(
+    tags.add(
       Tag(
         encodeStringToBase64(name),
         encodeStringToBase64(value),
@@ -109,13 +107,13 @@ class DataItem implements TransactionBase {
           utf8.encode('dataitem'),
           utf8.encode('1'),
           decodeBase64ToBytes(owner),
-          decodeBase64ToBytes(target!),
-          decodeBase64ToBytes(nonce!),
-          tags!
+          decodeBase64ToBytes(target),
+          decodeBase64ToBytes(nonce),
+          tags
               .map(
                 (t) => [
-                  decodeBase64ToBytes(t.name!),
-                  decodeBase64ToBytes(t.value!),
+                  decodeBase64ToBytes(t.name),
+                  decodeBase64ToBytes(t.value),
                 ],
               )
               .toList(),
@@ -135,12 +133,20 @@ class DataItem implements TransactionBase {
     _id = encodeBytesToBase64(idHash.bytes);
   }
 
+  @override
+  Future<void> signWithRawSignature(Uint8List rawSignature) async {
+    _signature = encodeBytesToBase64(rawSignature);
+
+    final idHash = await sha256.hash(rawSignature);
+    _id = encodeBytesToBase64(idHash.bytes);
+  }
+
   /// Verify that the [DataItem] is valid.
   @override
   Future<bool> verify() async {
     try {
       final signatureData = await getSignatureData();
-      final claimedSignatureBytes = decodeBase64ToBytes(signature!);
+      final claimedSignatureBytes = decodeBase64ToBytes(signature);
 
       final idHash = await sha256.hash(claimedSignatureBytes);
       final expectedId = encodeBytesToBase64(idHash.bytes);

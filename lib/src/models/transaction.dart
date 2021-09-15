@@ -2,9 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:arweave/arweave.dart';
-import 'package:cryptography/cryptography.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:meta/meta.dart';
 
 import '../crypto/crypto.dart';
 import '../utils.dart';
@@ -23,8 +21,8 @@ class Transaction implements TransactionBase {
   final int format;
 
   @override
-  String? get id => _id;
-  String? _id;
+  String get id => _id;
+  late String _id;
 
   @JsonKey(name: 'last_tx')
   String? get lastTx => _lastTx;
@@ -35,8 +33,8 @@ class Transaction implements TransactionBase {
   String? _owner;
 
   @override
-  List<Tag>? get tags => _tags;
-  List<Tag>? _tags;
+  List<Tag> get tags => _tags;
+  late List<Tag> _tags;
 
   @override
   String get target => _target;
@@ -54,20 +52,20 @@ class Transaction implements TransactionBase {
   Uint8List _data;
 
   @JsonKey(name: 'data_size')
-  String? get dataSize => _dataSize;
-  String? _dataSize;
+  String get dataSize => _dataSize;
+  String _dataSize = '0';
 
   @JsonKey(name: 'data_root')
   String get dataRoot => _dataRoot;
-  String _dataRoot;
+  late String _dataRoot;
 
   @JsonKey(fromJson: _stringToBigInt, toJson: _bigIntToString)
   BigInt get reward => _reward;
-  BigInt _reward;
+  late BigInt _reward;
 
   @override
-  String? get signature => _signature;
-  String? _signature;
+  String get signature => _signature;
+  late String _signature;
 
   @JsonKey(ignore: true)
   TransactionChunksWithProofs? get chunks => _chunks;
@@ -87,23 +85,30 @@ class Transaction implements TransactionBase {
     BigInt? quantity,
     String? data,
     Uint8List? dataBytes,
-    String? dataSize = '0',
+    String? dataSize,
     String? dataRoot,
     BigInt? reward,
     String? signature,
-  })  : _id = id,
-        _lastTx = lastTx,
-        _owner = owner,
-        _target = target ?? '',
+  })  : _target = target ?? '',
         _quantity = quantity ?? BigInt.zero,
         _data = data != null
             ? decodeBase64ToBytes(data)
             : (dataBytes ?? Uint8List(0)),
-        _dataSize = dataSize,
         _dataRoot = dataRoot ?? '',
         _reward = reward ?? BigInt.zero,
-        _signature = signature {
-    _tags = tags ?? [];
+        _owner = owner,
+        _lastTx = lastTx {
+    if (signature != null) {
+      _signature = signature;
+    }
+    if (dataSize != null) {
+      _dataSize = dataSize;
+    }
+    if (id != null) {
+      _id = id;
+    }
+
+    _tags = tags != null ? [...tags] : [];
   }
 
   /// Constructs a [Transaction] with the specified [DataBundle], computed data size, and appropriate bundle tags.
@@ -190,7 +195,7 @@ class Transaction implements TransactionBase {
 
   @override
   void addTag(String name, String value) {
-    tags!.add(
+    tags.add(
       Tag(
         encodeStringToBase64(name),
         encodeStringToBase64(value),
@@ -205,7 +210,7 @@ class Transaction implements TransactionBase {
 
     if (data.isNotEmpty) {
       _chunks = await generateTransactionChunks(data);
-      _dataRoot = encodeBytesToBase64(chunks!.dataRoot!);
+      _dataRoot = encodeBytesToBase64(chunks!.dataRoot);
     } else {
       _chunks = TransactionChunksWithProofs(Uint8List(0), [], []);
     }
@@ -239,10 +244,10 @@ class Transaction implements TransactionBase {
               utf8.encode(quantity.toString()) +
               utf8.encode(reward.toString()) +
               decodeBase64ToBytes(lastTx!) +
-              tags!
+              tags
                   .expand((t) =>
-                      decodeBase64ToBytes(t.name!) +
-                      decodeBase64ToBytes(t.value!))
+                      decodeBase64ToBytes(t.name) +
+                      decodeBase64ToBytes(t.value))
                   .toList(),
         );
       case 2:
@@ -253,15 +258,15 @@ class Transaction implements TransactionBase {
           utf8.encode(quantity.toString()),
           utf8.encode(reward.toString()),
           decodeBase64ToBytes(lastTx!),
-          tags!
+          tags
               .map(
                 (t) => [
-                  decodeBase64ToBytes(t.name!),
-                  decodeBase64ToBytes(t.value!),
+                  decodeBase64ToBytes(t.name),
+                  decodeBase64ToBytes(t.value),
                 ],
               )
               .toList(),
-          utf8.encode(dataSize!),
+          utf8.encode(dataSize),
           decodeBase64ToBytes(dataRoot),
         ]);
       default:
@@ -281,10 +286,18 @@ class Transaction implements TransactionBase {
   }
 
   @override
+  Future<void> signWithRawSignature(Uint8List rawSignature) async {
+    _signature = encodeBytesToBase64(rawSignature);
+
+    final idHash = await sha256.hash(rawSignature);
+    _id = encodeBytesToBase64(idHash.bytes);
+  }
+
+  @override
   Future<bool> verify() async {
     try {
       final signatureData = await getSignatureData();
-      final claimedSignatureBytes = decodeBase64ToBytes(signature!);
+      final claimedSignatureBytes = decodeBase64ToBytes(signature);
 
       final idHash = await sha256.hash(claimedSignatureBytes);
       final expectedId = encodeBytesToBase64(idHash.bytes);
