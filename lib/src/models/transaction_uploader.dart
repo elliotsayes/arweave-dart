@@ -2,11 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:arweave/arweave.dart';
+import 'package:http/http.dart';
+import 'package:meta/meta.dart';
 import 'package:retry/retry.dart';
 
 import '../api/api.dart';
 import '../crypto/crypto.dart';
 import '../utils.dart';
+import 'currency.dart';
 
 /// Maximum amount of chunks we will upload in the body.
 const maxChunksInBody = 1;
@@ -23,11 +26,12 @@ const fatalChunkUploadErrors = [
 ];
 
 class TransactionUploader {
-  final Transaction _transaction;
+  @protected
+  final Transaction transaction;
   final ArweaveApi _api;
 
   bool get isComplete => _txPosted && uploadedChunks >= totalChunks;
-  int get totalChunks => _transaction.chunks!.chunks.length;
+  int get totalChunks => transaction.chunks!.chunks.length;
   int get uploadedChunks => _uploadedChunks;
 
   /// The progress of the current upload ranging from 0 to 1.
@@ -42,17 +46,20 @@ class TransactionUploader {
   bool _txPosted = false;
   int _uploadedChunks = 0;
 
-  TransactionUploader(Transaction transaction, ArweaveApi api,
+  TransactionUploader(this.transaction, ArweaveApi api,
       {this.maxConcurrentChunkUploadCount = 128, bool forDataOnly = false})
-      : _transaction = transaction,
-        _api = api,
+      : _api = api,
         _txPosted = forDataOnly {
     if (transaction.chunks == null) {
       throw ArgumentError('Transaction chunks not prepared.');
     } else if (forDataOnly && totalChunks == 0) {
       throw ArgumentError('Transaction has no chunks.');
+    } else if (transaction.signerCurrency != Currency.ar) {
+      throw ArgumentError('Transaction has unsupported currency.');
     }
   }
+  Future<Response> postTx({dynamic body}) => _api.post('tx', body: body);
+  Future<Response> postChunk({dynamic body}) => _api.post('chunk', body: body);
 
   /// Uploads the transaction in full, returning a stream of events signaling
   /// the status of the upload on every completed chunk upload.
@@ -119,16 +126,16 @@ class TransactionUploader {
   /// Throws an [Exception] if the transaction header could not be posted.
   Future<void> _postTransactionHeader() async {
     final uploadInBody = totalChunks <= maxChunksInBody;
-    final txJson = _transaction.toJson();
+    final txJson = transaction.toJson();
 
     if (uploadInBody) {
-      if (_transaction.tags.contains(Tag('Bundle-Format', 'binary'))) {
-        txJson['data'] = _transaction.data.buffer;
+      if (transaction.tags.contains(Tag('Bundle-Format', 'binary'))) {
+        txJson['data'] = transaction.data.buffer;
       } else {
-        txJson['data'] = encodeBytesToBase64(_transaction.data);
+        txJson['data'] = encodeBytesToBase64(transaction.data);
       }
 
-      final res = await _api.post('tx', body: json.encode(txJson));
+      final res = await postTx(body: json.encode(txJson));
 
       if (res.statusCode >= 200 && res.statusCode < 300) {
         // This transaction and it's data is uploaded.
@@ -141,7 +148,7 @@ class TransactionUploader {
 
     // Post the transaction with no data.
     txJson.remove('data');
-    final res = await _api.post('tx', body: json.encode(txJson));
+    final res = await postTx(body: json.encode(txJson));
 
     if (!(res.statusCode >= 200 && res.statusCode < 300)) {
       throw Exception('Unable to upload transaction: ${res.statusCode}');
@@ -155,10 +162,10 @@ class TransactionUploader {
   /// Throws a [StateError] if the chunk being uploaded encounters a fatal error
   /// during upload and an [Exception] if a non-fatal error is encountered.
   Future<void> _uploadChunk(int chunkIndex) async {
-    final chunk = _transaction.getChunk(chunkIndex);
+    final chunk = transaction.getChunk(chunkIndex);
 
     final chunkValid = await validatePath(
-        _transaction.chunks!.dataRoot,
+        transaction.chunks!.dataRoot,
         int.parse(chunk.offset),
         0,
         int.parse(chunk.dataSize),
@@ -168,7 +175,7 @@ class TransactionUploader {
       throw StateError('Unable to validate chunk: $chunkIndex');
     }
 
-    final res = await _api.post('chunk', body: json.encode(chunk));
+    final res = await postChunk(body: json.encode(chunk));
 
     if (res.statusCode != 200) {
       final responseError = getResponseError(res);

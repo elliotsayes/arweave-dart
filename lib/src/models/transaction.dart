@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:arweave/arweave.dart';
+import 'package:arweave/src/models/currency.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import '../crypto/crypto.dart';
@@ -63,6 +64,9 @@ class Transaction implements TransactionBase {
   @override
   String get signature => _signature;
   late String _signature;
+
+  Currency get signerCurrency => _signerCurrency;
+  late Currency _signerCurrency;
 
   @JsonKey(ignore: true)
   TransactionChunksWithProofs? get chunks => _chunks;
@@ -281,6 +285,7 @@ class Transaction implements TransactionBase {
     final rawSignature = await wallet.sign(signatureData);
 
     _signature = encodeBytesToBase64(rawSignature);
+    _signerCurrency = wallet.currency;
 
     final idHash = await sha256.hash(rawSignature);
     _id = encodeBytesToBase64(idHash.bytes);

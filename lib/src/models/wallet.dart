@@ -3,6 +3,7 @@ import 'dart:core';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:arweave/src/models/currency.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:jwk/jwk.dart';
 import 'package:pointycastle/export.dart';
@@ -13,6 +14,8 @@ import '../utils.dart';
 class Wallet {
   RsaKeyPair? _keyPair;
   Wallet({KeyPair? keyPair}) : _keyPair = keyPair as RsaKeyPair?;
+
+  Currency get currency => Currency.ar;
 
   static Future<Wallet> generate() async {
     final secureRandom = FortunaRandom();
