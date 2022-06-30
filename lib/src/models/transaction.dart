@@ -65,6 +65,7 @@ class Transaction implements TransactionBase {
   String get signature => _signature;
   late String _signature;
 
+  @JsonKey(ignore: true)
   Currency get signerCurrency => _signerCurrency;
   late Currency _signerCurrency;
 
