@@ -15,8 +15,15 @@ class BundlrApi {
   Future<http.Response> get(String endpoint) =>
       _client.get(_getEndpointUri(endpoint));
 
-  Future<http.Response> post(String endpoint, {dynamic body}) =>
-      _client.post(_getEndpointUri(endpoint), body: body);
+  Future<http.Response> post(
+    String endpoint, {
+    dynamic body,
+    Map<String, String>? headers,
+  }) {
+    final url = _getEndpointUri(endpoint);
+    print(url);
+    return _client.post(url, body: body, headers: headers);
+  }
 
   Uri _getEndpointUri(String path) => Uri.parse('${nodeUrl.origin}/$path');
 }

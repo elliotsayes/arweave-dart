@@ -30,26 +30,27 @@ class TransactionUploader {
   final Transaction transaction;
   final ArweaveApi _api;
 
-  bool get isComplete => _txPosted && uploadedChunks >= totalChunks;
+  bool get isComplete => txPosted && uploadedChunks >= totalChunks;
   int get totalChunks => transaction.chunks!.chunks.length;
-  int get uploadedChunks => _uploadedChunks;
 
   /// The progress of the current upload ranging from 0 to 1.
   ///
   /// Additionally accounts for the posting of the transaction header, therefore
   /// data only uploads will start with a progress > 0.
   double get progress =>
-      ((_txPosted ? 1 : 0) + uploadedChunks) / (1 + totalChunks);
+      ((txPosted ? 1 : 0) + uploadedChunks) / (1 + totalChunks);
 
   final int maxConcurrentChunkUploadCount;
 
-  bool _txPosted = false;
-  int _uploadedChunks = 0;
+  @protected
+  bool txPosted = false;
+  @protected
+  int uploadedChunks = 0;
 
   TransactionUploader(this.transaction, ArweaveApi api,
       {this.maxConcurrentChunkUploadCount = 128, bool forDataOnly = false})
       : _api = api,
-        _txPosted = forDataOnly {
+        txPosted = forDataOnly {
     if (transaction.chunks == null) {
       throw ArgumentError('Transaction chunks not prepared.');
     } else if (forDataOnly && totalChunks == 0) {
@@ -59,12 +60,13 @@ class TransactionUploader {
     }
   }
   Future<Response> postTx({dynamic body}) => _api.post('tx', body: body);
-  Future<Response> postChunk({dynamic body}) => _api.post('chunk', body: body);
+  Future<Response> postChunk({dynamic body, int? index}) =>
+      _api.post('chunk', body: body);
 
   /// Uploads the transaction in full, returning a stream of events signaling
   /// the status of the upload on every completed chunk upload.
   Stream<TransactionUploader> upload() async* {
-    if (!_txPosted) {
+    if (!txPosted) {
       await retry(() => _postTransactionHeader());
 
       yield this;
@@ -108,7 +110,7 @@ class TransactionUploader {
     // notify the stream consumer of chunk upload completion events.
     yield* chunkUploadCompletionStreamController.stream
         .map((completedChunkIndex) {
-      _uploadedChunks++;
+      uploadedChunks++;
 
       if (chunkIndex < totalChunks) {
         uploadChunkAndNotifyOfCompletion(chunkIndex);
@@ -139,8 +141,8 @@ class TransactionUploader {
 
       if (res.statusCode >= 200 && res.statusCode < 300) {
         // This transaction and it's data is uploaded.
-        _txPosted = true;
-        _uploadedChunks = totalChunks;
+        txPosted = true;
+        uploadedChunks = totalChunks;
         return;
       }
       throw Exception('Unable to upload transaction: ${res.statusCode}');
@@ -154,7 +156,7 @@ class TransactionUploader {
       throw Exception('Unable to upload transaction: ${res.statusCode}');
     }
 
-    _txPosted = true;
+    txPosted = true;
   }
 
   /// Uploads the specified chunk onto Arweave.
