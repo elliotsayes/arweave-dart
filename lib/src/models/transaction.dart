@@ -7,6 +7,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 import '../crypto/crypto.dart';
 import '../utils.dart';
+import '../utils/bundle_tag_parser.dart';
 
 part 'transaction.g.dart';
 
@@ -312,6 +313,61 @@ class Transaction implements TransactionBase {
     } catch (_) {
       return false;
     }
+  }
+
+  Future<BytesBuilder> asBinary() async {
+    assert(await verify());
+
+    final decodedOwner = decodeBase64ToBytes(owner!);
+    final decodedTarget = decodeBase64ToBytes(target);
+    final anchor = decodeBase64ToBytes(lastTx!);
+    final tags = serializeTags(tags: this.tags);
+
+    // See [https://github.com/joshbenaron/arweave-standards/blob/ans104/ans/ANS-104.md#13-dataitem-format]
+    assert(decodedOwner.buffer.lengthInBytes == 512);
+    final bytesBuilder = BytesBuilder();
+
+    bytesBuilder.add(shortTo2ByteArray(1)); // Signature type: AR
+    bytesBuilder.add(decodeBase64ToBytes(signature));
+    bytesBuilder.add(decodedOwner);
+    bytesBuilder.addByte(decodedTarget.isNotEmpty ? 1 : 0);
+
+    if (decodedTarget.isNotEmpty) {
+      assert(
+          decodedTarget.lengthInBytes == 32, print('Target must be 32 bytes'));
+      bytesBuilder.add(decodedTarget);
+    }
+
+    bytesBuilder.addByte(anchor.isNotEmpty ? 1 : 0);
+    if (anchor.isNotEmpty) {
+      assert(
+          anchor.buffer.lengthInBytes == 32, print('Anchor must be 32 bytes'));
+      bytesBuilder.add(anchor);
+    }
+
+    bytesBuilder.add(longTo8ByteArray(this.tags.length));
+    final bytesCount = longTo8ByteArray(tags.lengthInBytes);
+    bytesBuilder.add(bytesCount);
+    if (tags.isNotEmpty) {
+      bytesBuilder.add(tags);
+    }
+
+    bytesBuilder.add(data);
+
+    final length = bytesBuilder.length;
+
+    final signatureLength = decodeBase64ToBytes(signature).length;
+    final expectedLength = 2 +
+        signatureLength +
+        decodedOwner.length +
+        (1 + decodedTarget.length) +
+        (1 + anchor.length) +
+        (16 + tags.length) +
+        data.length;
+
+    assert(length == expectedLength);
+
+    return bytesBuilder;
   }
 
   factory Transaction.fromJson(Map<String, dynamic> json) =>
