@@ -22,6 +22,12 @@ void main() {
 
   // Test cases from https://avro.apache.org/docs/current/spec.html#binary_encode_primitive
   group('serialize long', () {
+    test('should serialize low positive long correctly', () {
+      final tLowLong = 2;
+      final res = serializeLong(tLowLong);
+      expect(res, equals(Uint8List.fromList([0x04])));
+    });
+
     test('should serialize negative long correctly', () {
       final tNegativeLong = -64;
       final res = serializeLong(tNegativeLong);
