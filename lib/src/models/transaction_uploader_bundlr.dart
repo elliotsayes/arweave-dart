@@ -9,29 +9,41 @@ class TransactionUploaderBundlr extends TransactionUploader {
   final BundlrApi _bundlr;
 
   @override
-  bool get isComplete => throw UnimplementedError();
+  bool get isComplete => _done;
   @override
-  int get totalChunks => throw UnimplementedError();
+  int get totalChunks => 1;
   @override
-  int get uploadedChunks => throw UnimplementedError();
+  int get uploadedChunks => _done ? 1 : 0;
   @override
-  double get progress => throw UnimplementedError();
+  double get progress => _done ? 1 : 0;
 
   final int maxConcurrentChunkUploadCount;
 
   bool _txPosted = false;
-  int _uploadedChunks = 0;
+  bool _done = false;
 
-  TransactionUploaderBundlr(DataItem dataItem, BundlrApi api,
-      {this.maxConcurrentChunkUploadCount = 128, bool forDataOnly = false})
-      : _dataItem = dataItem,
+  TransactionUploaderBundlr(
+    DataItem dataItem,
+    BundlrApi api, {
+    this.maxConcurrentChunkUploadCount = 128,
+    bool forDataOnly = false,
+  })  : _dataItem = dataItem,
         _bundlr = api,
-        _txPosted = forDataOnly {
-    throw UnimplementedError();
-  }
+        _txPosted = forDataOnly;
 
   @override
   Stream<TransactionUploaderBundlr> upload() async* {
-    throw UnimplementedError();
+    final body = (await _dataItem.asBinary()).toBytes();
+    final resp = await _bundlr.post(
+      '/tx/arweave',
+      body: body,
+      headers: {
+        "Content-Type": "application/octet-stream",
+      },
+    );
+    if (resp.statusCode >= 200 && resp.statusCode < 300) {
+      _done = true;
+    }
+    yield this;
   }
 }
