@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:arweave/arweave.dart';
+import 'package:arweave/src/models/transaction_uploader_base.dart';
 import 'package:retry/retry.dart';
 
 import '../api/api.dart';
@@ -22,18 +23,22 @@ const fatalChunkUploadErrors = [
   'invalid_proof'
 ];
 
-class TransactionUploader {
+class TransactionUploaderArweave extends TransactionUploader {
   final Transaction _transaction;
   final ArweaveApi _api;
 
+  @override
   bool get isComplete => _txPosted && uploadedChunks >= totalChunks;
+  @override
   int get totalChunks => _transaction.chunks!.chunks.length;
+  @override
   int get uploadedChunks => _uploadedChunks;
 
   /// The progress of the current upload ranging from 0 to 1.
   ///
   /// Additionally accounts for the posting of the transaction header, therefore
   /// data only uploads will start with a progress > 0.
+  @override
   double get progress =>
       ((_txPosted ? 1 : 0) + uploadedChunks) / (1 + totalChunks);
 
@@ -42,7 +47,7 @@ class TransactionUploader {
   bool _txPosted = false;
   int _uploadedChunks = 0;
 
-  TransactionUploader(Transaction transaction, ArweaveApi api,
+  TransactionUploaderArweave(Transaction transaction, ArweaveApi api,
       {this.maxConcurrentChunkUploadCount = 128, bool forDataOnly = false})
       : _transaction = transaction,
         _api = api,
@@ -56,7 +61,8 @@ class TransactionUploader {
 
   /// Uploads the transaction in full, returning a stream of events signaling
   /// the status of the upload on every completed chunk upload.
-  Stream<TransactionUploader> upload() async* {
+  @override
+  Stream<TransactionUploaderArweave> upload() async* {
     if (!_txPosted) {
       await retry(() => _postTransactionHeader());
 

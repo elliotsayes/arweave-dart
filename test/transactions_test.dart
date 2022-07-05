@@ -171,7 +171,7 @@ void main() {
       expect(
         client.transactions.upload(transaction),
         emitsInOrder([
-          emits(predicate((TransactionUploader event) =>
+          emits(predicate((TransactionUploaderArweave event) =>
               event.isComplete && event.progress == 1)),
           emitsDone,
         ]),
@@ -193,7 +193,8 @@ void main() {
       expect(
         client.transactions.upload(transaction, dataOnly: true),
         emitsInOrder([
-          ...List.filled(393, emits(predicate((TransactionUploader event) {
+          ...List.filled(393,
+              emits(predicate((TransactionUploaderArweave event) {
             final eventIsInSequence =
                 event.uploadedChunks > lastUploadedChunkCount &&
                     event.progress > lastProgress;
@@ -203,7 +204,7 @@ void main() {
 
             return eventIsInSequence;
           }))),
-          emits(predicate((TransactionUploader event) =>
+          emits(predicate((TransactionUploaderArweave event) =>
               event.isComplete && event.progress == 1)),
           emitsDone,
         ]),
