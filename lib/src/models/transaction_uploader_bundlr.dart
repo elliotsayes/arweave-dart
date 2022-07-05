@@ -35,7 +35,7 @@ class TransactionUploaderBundlr extends TransactionUploader {
   Stream<TransactionUploaderBundlr> upload() async* {
     final body = (await _dataItem.asBinary()).toBytes();
     final resp = await _bundlr.post(
-      '/tx/arweave',
+      'tx/arweave',
       body: body,
       headers: {
         "Content-Type": "application/octet-stream",
