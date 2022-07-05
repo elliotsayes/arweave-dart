@@ -20,15 +20,17 @@ Uint8List serializeString(String string) {
   );
 }
 
+const _msb = 0x80;
+
 Uint8List serializeLong(int long) {
   var zigZag = (long << 1) ^ (long >> 63);
 
-  final buffer = <int>[];
-  while (zigZag >= 0x80) {
-    buffer.add((zigZag & 0x7f) | (1 << 7));
+  final builder = BytesBuilder();
+  while (zigZag >= _msb) {
+    builder.addByte(zigZag | _msb);
     zigZag >>= 7;
   }
-  buffer.add(zigZag);
+  builder.addByte(zigZag);
 
-  return Uint8List.fromList(buffer);
+  return builder.toBytes();
 }
