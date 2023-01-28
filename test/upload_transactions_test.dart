@@ -148,6 +148,18 @@ void main() {
       }, timeout: Timeout(Duration(seconds: 120)), onPlatform: {
         'browser': Skip('dart:io unavailable'),
       });
+
+      test('error when get v1 stream transaction', () async {
+        expect(
+          client.transactions.get<TransactionStream>(liveDataTxId),
+          throwsArgumentError,
+        );
+      });
+
+      test('get and verify v2 stream transaction', () async {
+        final transaction = (await (client.transactions.get<TransactionStream>('8C6yYu5pWMADLSd65wTnrzgN-9eLj9sFbyVC3prSaFs')))!;
+        expect(await transaction.verify(), true);
+      });
     }));
   });
 }
