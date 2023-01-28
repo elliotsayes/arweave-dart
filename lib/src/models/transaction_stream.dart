@@ -103,6 +103,9 @@ class TransactionStream implements Transaction {
         _reward = reward ?? BigInt.zero,
         _owner = owner,
         _lastTx = lastTx {
+    if (format == 1) {
+      throw ArgumentError.value(format, 'format', 'Format 1 stream transactions are not supported.');
+    }
     if (signature != null) {
       _signature = signature;
     }
