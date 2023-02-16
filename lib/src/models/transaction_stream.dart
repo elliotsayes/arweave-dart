@@ -10,6 +10,7 @@ import '../utils.dart';
 
 part 'transaction_stream.g.dart';
 
+typedef DataStream = Stream<Uint8List>;
 typedef DataStreamGenerator = Stream<Uint8List> Function();
 
 String _bigIntToString(BigInt v) => v.toString();
@@ -242,6 +243,10 @@ class TransactionStream implements Transaction {
   /// Also chunks and validates the incoming data for format 2 transactions.
   Future<void> setDataStreamGenerator(DataStreamGenerator dataStreamGenerator, int dataSize) async {
     _dataStreamGenerator = dataStreamGenerator;
+    await processDataStream(dataStreamGenerator(), dataSize);
+  }
+
+  Future<void> processDataStream(DataStream dataStream, int dataSize) async {
     _dataSize = dataSize.toString();
 
     if (format == 2) {
