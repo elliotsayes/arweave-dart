@@ -251,9 +251,8 @@ class TransactionStream implements Transaction {
 
     if (format == 2) {
       final existingDataRoot = _dataRoot;
-      _chunks = null;
 
-      await prepareChunks();
+      await _prepareChunksFromStream(dataStream);
 
       if (existingDataRoot != dataRoot) {
         throw StateError(
@@ -262,13 +261,17 @@ class TransactionStream implements Transaction {
     }
   }
 
+  Future<void> _prepareChunksFromStream(DataStream dataStream) async {
+    _chunks = await generateTransactionChunksFromStream(dataStream);
+    _dataRoot = encodeBytesToBase64(chunks!.dataRoot);
+  }
+
   @override
   Future<void> prepareChunks() async {
     if (chunks != null) return;
 
     final dataStream = dataStreamGenerator();
-    _chunks = await generateTransactionChunksFromStream(dataStream);
-    _dataRoot = encodeBytesToBase64(chunks!.dataRoot);
+    await _prepareChunksFromStream(dataStream);
   }
 
   /// Returns a chunk in a format suitable for posting to /chunk.
