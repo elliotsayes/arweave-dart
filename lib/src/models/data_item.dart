@@ -129,6 +129,15 @@ class DataItem implements TransactionBase {
     return Uint8List.fromList(idHash.bytes);
   }
 
+  /// Sets the [DataItem]'s signature to the specified data and sets the `id` appropriately.
+  Future<Uint8List> setSignature(Uint8List rawSignature) async {
+    _signature = encodeBytesToBase64(rawSignature);
+
+    final idHash = await sha256.hash(rawSignature);
+    _id = encodeBytesToBase64(idHash.bytes);
+    return Uint8List.fromList(idHash.bytes);
+  }
+
   int getSize() {
     const targetLength = 1;
     final anchorLength = nonce.isEmpty ? 1 : 1 + 32;
