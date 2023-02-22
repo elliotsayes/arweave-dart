@@ -130,9 +130,10 @@ class DataItem implements TransactionBase {
   }
 
   /// Sets the [DataItem]'s signature to the specified data and sets the `id` appropriately.
-  Future<Uint8List> setSignature(Uint8List rawSignature) async {
-    _signature = encodeBytesToBase64(rawSignature);
+  Future<Uint8List> setSignature(String signatureB64Url) async {
+    _signature = signatureB64Url;
 
+    final rawSignature = decodeBase64ToBytes(signatureB64Url);
     final idHash = await sha256.hash(rawSignature);
     _id = encodeBytesToBase64(idHash.bytes);
     return Uint8List.fromList(idHash.bytes);
