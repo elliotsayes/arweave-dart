@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:arweave/arweave.dart';
 import 'package:async/async.dart';
-import 'package:mutex/mutex.dart';
 import 'package:retry/retry.dart';
 
 import '../api/api.dart';
@@ -69,65 +69,56 @@ class TransactionUploader {
       }
     }
 
-    final chunkUploadCompletionStreamController = StreamController<int>();
-    int chunkIndex = 0;
+    final chunkUploadCompletionStreamController = StreamController<TransactionChunk>();
+
     final chunkStream = _transaction.getChunks();
     final chunkQueue = StreamQueue(chunkStream);
 
-    Future<void> uploadChunkAndNotifyOfCompletion(int chunkIndex, TransactionChunk chunk) async {
+    Future<void> uploadChunkAndNotifyOfCompletion(TransactionChunk chunk) async {
       try {
         await retry(
-          () => _uploadChunk(chunkIndex, chunk),
+          () => _uploadChunk(chunk),
           onRetry: (exception) {
             print(
-              'Retrying for chunk $chunkIndex on exception ${exception.toString()}',
+              'Retrying for chunk @${chunk.offset} on exception ${exception.toString()}',
             );
           },
         );
 
-        chunkUploadCompletionStreamController.add(chunkIndex);
+        chunkUploadCompletionStreamController.add(chunk);
       } catch (err) {
-        print('Chunk upload failed at $chunkIndex');
+        print('Chunk upload failed @${chunk.offset}');
         chunkUploadCompletionStreamController.addError(err);
       }
     }
 
-    final mutex = Mutex();
-
     // Initiate as many chunk uploads as we can in parallel at the start.
-    // Note that onListen is not actually awaited, so should be protected by Mutex
-    // to ensure that additional chunk uploads are not started before these. 
     chunkUploadCompletionStreamController.onListen = () async {
-      await mutex.protect(() async {
-        while (chunkIndex < totalChunks &&
-            chunkIndex < maxConcurrentChunkUploadCount) {
-          uploadChunkAndNotifyOfCompletion(chunkIndex, await chunkQueue.next);
-          chunkIndex++;
-        }
-      });
+      final initialUploadCount = min(
+        maxConcurrentChunkUploadCount,
+        totalChunks,
+      );
+      final initialUploads = await chunkQueue.take(initialUploadCount);
+      for (var i = 0; i < initialUploadCount; i++) {
+        uploadChunkAndNotifyOfCompletion(initialUploads[i]);
+      }
     };
 
     // Start a new chunk upload if there are still any left to upload and
     // notify the stream consumer of chunk upload completion events.
     yield* chunkUploadCompletionStreamController.stream
-        .map((completedChunkIndex) {
-      _uploadedChunks++;
-
-      // chunkIndex and chunkQueue must be protected from race conditions by Mutex
+        .map((completedChunk) {
       // Note that the future is not awaited, so it will be queued after returning
-      mutex.protect(() async {
-        if (chunkIndex < totalChunks) {
-          uploadChunkAndNotifyOfCompletion(chunkIndex, await chunkQueue.next);
-          chunkIndex++;
+      unawaited(() async {
+        if (await chunkQueue.hasNext) {
+          uploadChunkAndNotifyOfCompletion(await chunkQueue.next);
         } else if (isComplete) {
-          if (await chunkQueue.hasNext) {
-            throw StateError('Chunks remaining in queue');
-          }
           chunkQueue.cancel();
           chunkUploadCompletionStreamController.close();
         }
-      });
+      }());
 
+      _uploadedChunks++;
       return this;
     });
   }
@@ -172,7 +163,7 @@ class TransactionUploader {
   ///
   /// Throws a [StateError] if the chunk being uploaded encounters a fatal error
   /// during upload and an [Exception] if a non-fatal error is encountered.
-  Future<void> _uploadChunk(int chunkIndex, TransactionChunk chunk) async {
+  Future<void> _uploadChunk(TransactionChunk chunk) async {
     final chunkValid = await validatePath(
         _transaction.chunks!.dataRoot,
         int.parse(chunk.offset),
@@ -181,7 +172,7 @@ class TransactionUploader {
         decodeBase64ToBytes(chunk.dataPath));
 
     if (!chunkValid) {
-      throw StateError('Unable to validate chunk: $chunkIndex');
+      throw StateError('Unable to validate chunk @${chunk.offset}');
     }
 
     final res = await _api.post('chunk', body: json.encode(chunk));
@@ -191,10 +182,10 @@ class TransactionUploader {
 
       if (fatalChunkUploadErrors.contains(responseError)) {
         throw StateError(
-            'Fatal error uploading chunk: $chunkIndex: ${res.statusCode} $responseError');
+            'Fatal error uploading chunk @${chunk.offset}: ${res.statusCode} $responseError');
       } else {
         throw Exception(
-            'Received non-fatal error while uploading chunk $chunkIndex: ${res.statusCode} $responseError');
+            'Received non-fatal error while uploading chunk @${chunk.offset}: ${res.statusCode} $responseError');
       }
     }
   }
