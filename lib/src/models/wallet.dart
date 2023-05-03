@@ -52,6 +52,10 @@ class Wallet {
 
   Future<String> getOwner() async => encodeBytesToBase64(
       await _keyPair!.extractPublicKey().then((res) => res.n));
+
+  Future<RsaPublicKey> getPublicKey() async =>
+      await _keyPair!.extractPublicKey();
+
   Future<String> getAddress() async => ownerToAddress(await getOwner());
 
   Future<Uint8List> sign(Uint8List message) async =>
