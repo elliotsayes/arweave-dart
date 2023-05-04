@@ -12,9 +12,10 @@ import '../utils.dart';
 import 'chain.dart';
 
 class Wallet {
-  ChainCode chainCode = ChainCode.Arweave;
   RsaKeyPair? _keyPair;
   Wallet({KeyPair? keyPair}) : _keyPair = keyPair as RsaKeyPair?;
+
+  ChainCode get chainCode => ChainCode.Arweave;
 
   static Future<Wallet> generate() async {
     final secureRandom = FortunaRandom();
