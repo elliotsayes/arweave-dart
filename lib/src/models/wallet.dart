@@ -9,8 +9,10 @@ import 'package:pointycastle/export.dart';
 
 import '../crypto/crypto.dart';
 import '../utils.dart';
+import 'chain.dart';
 
 class Wallet {
+  ChainCode chainCode = ChainCode.Arweave;
   RsaKeyPair? _keyPair;
   Wallet({KeyPair? keyPair}) : _keyPair = keyPair as RsaKeyPair?;
 
