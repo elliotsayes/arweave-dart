@@ -8,6 +8,9 @@ import 'package:test/test.dart';
 
 import 'utils.dart';
 
+final testArweaveAppWalletMnemonic =
+    "child collect expose tunnel youth response idle suspect accuse drink clip athlete";
+
 void main() {
   group('wallets:', () {
     test('decode and encode wallet', () async {
@@ -67,6 +70,40 @@ void main() {
         utils.encodeBytesToBase64(signature),
         startsWith('II5LxGnPt4WTSz9P__wMAdjzXWlZE-wGbKU7wm4DbGuPXB5Vifs'),
       );
+    }, onPlatform: {
+      'browser': Skip('dart:io unavailable'),
+    });
+
+    test('generate 12-word mnemonic', () async {
+      final mnemonic = await Wallet.generateMnemonic();
+      expect(mnemonic.split(' ').length, equals(12));
+    });
+
+    test('create wallet from mnemonic matches Arweave.app test wallet',
+        () async {
+      final wallet =
+          await Wallet.createWalletFromMnemonic(testArweaveAppWalletMnemonic);
+
+      final jwk = json.decode(
+          await File('test/fixtures/test-arweave-app-wallet.json')
+              .readAsString());
+      final arweaveAppTestWallet = Wallet.fromJwk(jwk);
+      // print(wallet.toJwk());
+      expect(await wallet.getAddress(),
+          equals(await arweaveAppTestWallet.getAddress()));
+    }, onPlatform: {
+      'browser': Skip('dart:io unavailable'),
+    });
+
+    test('create regenerating wallet from mnemonic creates matching wallets',
+        () async {
+      final wallet =
+          await Wallet.createWalletFromMnemonic(testArweaveAppWalletMnemonic);
+
+      final wallet2 =
+          await Wallet.createWalletFromMnemonic(testArweaveAppWalletMnemonic);
+
+      expect(await wallet.getAddress(), equals(await wallet2.getAddress()));
     }, onPlatform: {
       'browser': Skip('dart:io unavailable'),
     });
