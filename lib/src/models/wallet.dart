@@ -45,13 +45,8 @@ class Wallet {
   }
 
   static Future<Wallet> generate() async {
-    final secureRandom = FortunaRandom();
-    final seedSource = Random.secure();
-    final seeds = <int>[];
-    for (var i = 0; i < 32; i++) {
-      seeds.add(seedSource.nextInt(255));
-    }
-    secureRandom.seed(KeyParameter(Uint8List.fromList(seeds)));
+    final FortunaRandom secureRandom = FortunaRandom()
+        ..seed(KeyParameter(Platform.instance.platformEntropySource().getBytes(32)));
 
     return generateWallet(secureRandom);
   }
