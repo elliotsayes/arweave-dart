@@ -8,6 +8,7 @@ import 'package:bip39/bip39.dart' as bip39;
 import 'package:cryptography/cryptography.dart' hide SecureRandom;
 import 'package:jwk/jwk.dart';
 import 'package:pointycastle/export.dart';
+import 'package:pointycastle/src/platform_check/platform_check.dart';
 
 import '../crypto/crypto.dart';
 import '../utils.dart';
