@@ -95,7 +95,7 @@ void main() {
       'browser': Skip('dart:io unavailable'),
     });
 
-    test('create regenerating wallet from mnemonic creates matching wallets',
+    test('regenerating wallet from mnemonic creates matching wallets',
         () async {
       final wallet =
           await Wallet.createWalletFromMnemonic(testArweaveAppWalletMnemonic);
@@ -104,8 +104,6 @@ void main() {
           await Wallet.createWalletFromMnemonic(testArweaveAppWalletMnemonic);
 
       expect(await wallet.getAddress(), equals(await wallet2.getAddress()));
-    }, onPlatform: {
-      'browser': Skip('dart:io unavailable'),
     });
   });
 }
