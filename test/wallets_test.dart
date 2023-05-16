@@ -7,6 +7,7 @@ import 'package:arweave/utils.dart' as utils;
 import 'package:test/test.dart';
 
 import 'utils.dart';
+import 'fixtures/test_wallet.dart' as testWallet;
 
 final testArweaveAppWalletMnemonic =
     "child collect expose tunnel youth response idle suspect accuse drink clip athlete";
@@ -83,16 +84,10 @@ void main() {
         () async {
       final wallet =
           await Wallet.createWalletFromMnemonic(testArweaveAppWalletMnemonic);
+      final arweaveAppTestWallet = await testWallet.getTestArweaveAppWallet();
 
-      final jwk = json.decode(
-          await File('test/fixtures/test-arweave-app-wallet.json')
-              .readAsString());
-      final arweaveAppTestWallet = Wallet.fromJwk(jwk);
-      // print(wallet.toJwk());
       expect(await wallet.getAddress(),
           equals(await arweaveAppTestWallet.getAddress()));
-    }, onPlatform: {
-      'browser': Skip('dart:io unavailable'),
     });
 
     test('regenerating wallet from mnemonic creates matching wallets',
