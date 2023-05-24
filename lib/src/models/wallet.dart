@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:core';
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:arweave/src/crypto/hmac_drbg_secure_random.dart';
@@ -47,14 +46,10 @@ class Wallet {
 
   static Future<Wallet> generate() async {
     final FortunaRandom secureRandom = FortunaRandom()
-        ..seed(KeyParameter(Platform.instance.platformEntropySource().getBytes(32)));
+      ..seed(
+          KeyParameter(Platform.instance.platformEntropySource().getBytes(32)));
 
     return generateWallet(secureRandom);
-  }
-
-  static Future<String> generateMnemonic() async {
-    final String randomMnemonic = bip39.generateMnemonic();
-    return randomMnemonic;
   }
 
   static Future<Wallet> createWalletFromMnemonic(String mnemonic) async {

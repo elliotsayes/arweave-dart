@@ -6,8 +6,8 @@ import 'package:arweave/arweave.dart';
 import 'package:arweave/utils.dart' as utils;
 import 'package:test/test.dart';
 
-import 'utils.dart';
 import 'fixtures/test_wallet.dart' as testWallet;
+import 'utils.dart';
 
 final testArweaveAppWalletMnemonic =
     "child collect expose tunnel youth response idle suspect accuse drink clip athlete";
@@ -73,11 +73,6 @@ void main() {
       );
     }, onPlatform: {
       'browser': Skip('dart:io unavailable'),
-    });
-
-    test('generate 12-word mnemonic', () async {
-      final mnemonic = await Wallet.generateMnemonic();
-      expect(mnemonic.split(' ').length, equals(12));
     });
 
     test('create wallet from mnemonic matches Arweave.app test wallet',
